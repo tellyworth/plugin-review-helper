@@ -2,7 +2,7 @@
 namespace WordPressdotorg\Plugin_Review_Helper;
 
 /**
- * Plugin Name: Plugin Review Helper
+ * Plugin Name: Playground Review Helper
  * Description: Helper plugin for reviewing plugins. Makes a plugin moderator's job a little easier. Intended for use within Playground.
  * Author: Alex Shiels
  * Author URI: https://wordpress.org/
