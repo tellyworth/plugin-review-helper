@@ -36,6 +36,15 @@ function prh_admin_menu_capture() {
 	$prh_base_submenu = $GLOBALS['submenu'];
 }
 
+function prh_enqueued_capture() {
+	global $prh_enqueued_scripts, $prh_enqueued_styles;
+	global $wp_scripts, $wp_styles;
+
+	// Capture a copy of the enqueued scripts and styles before plugins add to them.
+	$prh_enqueued_scripts = $wp_scripts->registered;
+	$prh_enqueued_styles = $wp_styles->registered;
+}
+
 function prh_admin_menu() {
 	add_submenu_page( 'tools.php', 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
 }
@@ -51,6 +60,10 @@ function prh_admin_bar_menu( $wp_admin_bar ) {
 
 // Capture an early copy of the menu and submenu globals.
 add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu_capture', PHP_INT_MIN );
+
+// Capture an early copy of the enqueued scripts and styles.
+add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\prh_enqueued_capture', PHP_INT_MIN );
+add_action( 'admin_enqueue_scripts', __NAMESPACE__ . '\prh_enqueued_capture', PHP_INT_MIN );
 
 // Add submenu.
 add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
@@ -93,14 +106,21 @@ function prh_admin_page() {
 	}
 
 	global $wp_scripts, $wp_styles;
+	global $prh_enqueued_scripts, $prh_enqueued_styles;
 	?>
 	<pre><code>
 	<?php foreach ( $wp_scripts->registered as $script ) {
+		if ( isset( $prh_enqueued_scripts[ $script->handle ] ) ) {
+			continue;
+		}
 		if ( $script->src && !str_starts_with( $script->src, '/wp-includes/' ) && !str_starts_with( $script->src, '/wp-admin/' ) ) {
 			var_dump( $script );
 		}
 	} ?>
 	<?php foreach ( $wp_styles->registered as $style ) {
+		if ( isset( $prh_enqueued_styles[ $style->handle ] ) ) {
+			continue;
+		}
 		if ( $style->src && !str_starts_with( $style->src, '/wp-includes/' ) && !str_starts_with( $style->src, '/wp-admin/' ) ) {
 			var_dump( $style );
 		}
