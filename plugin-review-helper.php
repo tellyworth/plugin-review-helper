@@ -170,6 +170,10 @@ function prh_add_menu_classes( $menu ) {
 	foreach ( $submenu as $key => $items ) {
 		foreach ( $items as $item_key => $item ) {
 			if ( ! isset( $prh_base_submenu[ $key ][ $item_key ] ) ) {
+				// Ignore plugins used by Playground.
+				if ( 'plugin-review-helper' === $item[2] || 'sqlite-integration' === $item[2] ) {
+					continue;
+				}
 				// Highlight the submenu item.
 				#$submenu[ $key ][ $item_key ][0] .= ' <span class="menu-counter"><span class="count">!</span></span>';
 				$submenu[ $key ][ $item_key ][0] = '<span style="border: 1px dotted orange;">' . $submenu[ $key ][ $item_key ][0] . '</span>';
