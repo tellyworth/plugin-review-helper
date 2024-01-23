@@ -29,10 +29,37 @@ ini_set( 'html_errors', 1 );
 ini_set( 'error_log', PRH_LOG_FILE );
 
 add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
+function prh_admin_menu_capture() {
+	global $prh_base_menu, $prh_base_submenu;
+
+	// Capture a copy of the menu and submenu globals before plugins add to them.
+	$prh_base_menu = $GLOBALS['menu'];
+	$prh_base_submenu = $GLOBALS['submenu'];
+}
 
 function prh_admin_menu() {
-	add_menu_page( 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
+	add_submenu_page( 'tools.php', 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
 }
+
+function prh_admin_bar_menu( $wp_admin_bar ) {
+	$wp_admin_bar->add_node( array(
+		'id'    => 'plugin-review-helper',
+		'title' => 'Plugin Review Helper',
+		'href'  => admin_url( 'admin.php?page=plugin-review-helper' ),
+		'parent' => 'top-secondary',
+	) );
+}
+
+// Capture an early copy of the menu and submenu globals.
+add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu_capture', PHP_INT_MIN );
+
+// Add submenu.
+add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
+
+// Add item to admin bar.
+add_action( 'admin_bar_menu', __NAMESPACE__ . '\prh_admin_bar_menu', 100 );
+
+add_action( 'add_menu_classes', __NAMESPACE__ . '\prh_add_menu_classes', 100 );
 
 add_action( 'admin_init', __NAMESPACE__ . '\prh_admin_init' );
 
