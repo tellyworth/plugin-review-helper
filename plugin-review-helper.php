@@ -93,3 +93,38 @@ function prh_admin_page() {
 		phpinfo();
 	}
 }
+
+function prh_add_menu_classes( $menu ) {
+	global $prh_base_menu, $prh_base_submenu;
+
+	#var_dump( __FUNCTION__, count( $prh_base_menu ), count( $prh_base_submenu ) );
+	$slugs = [];
+
+	foreach ( $menu as $key => $item ) {
+		$slugs[ $item[2] ] = $key;
+		if ( ! isset( $prh_base_menu[ $key ] ) ) {
+			$menu[ $key ][4] .= ' menu-item-new';
+		}
+	}
+
+	// There's no corresponding filter for submenus, so we'll modify them in-place here.
+	global $prh_base_submenu, $submenu;
+
+	foreach ( $submenu as $key => $items ) {
+		foreach ( $items as $item_key => $item ) {
+			if ( ! isset( $prh_base_submenu[ $key ][ $item_key ] ) ) {
+				// Highlight the submenu item.
+				#$submenu[ $key ][ $item_key ][0] .= ' <span class="menu-counter"><span class="count">!</span></span>';
+				$submenu[ $key ][ $item_key ][0] = '<span style="border: 1px dotted orange;">' . $submenu[ $key ][ $item_key ][0] . '</span>';
+				if ( isset( $slugs[ $key ] ) ) {
+					// Also highlight the parent menu item.
+					$menu[ $slugs[ $key ] ][0] = '<span style="border: 1px dotted orange;">' . $menu[ $slugs[ $key ] ][0] . '</span>';
+					// Unset the slug so we don't add the icon twice.
+					unset( $slugs[ $key ] );
+				}
+			}
+		}
+	}
+
+	return $menu;
+}
