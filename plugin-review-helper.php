@@ -28,7 +28,6 @@ ini_set( 'html_errors', 1 );
 // Put the log file somewhere accessible both by code and web.
 ini_set( 'error_log', PRH_LOG_FILE );
 
-add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
 function prh_admin_menu_capture() {
 	global $prh_base_menu, $prh_base_submenu;
 
@@ -92,6 +91,44 @@ function prh_admin_page() {
 	if ( isset( $_GET['phpinfo'] ) ) {
 		phpinfo();
 	}
+
+	global $wp_scripts, $wp_styles;
+	?>
+	<pre><code>
+	<?php foreach ( $wp_scripts->registered as $script ) {
+		if ( $script->src && !str_starts_with( $script->src, '/wp-includes/' ) && !str_starts_with( $script->src, '/wp-admin/' ) ) {
+			var_dump( $script );
+		}
+	} ?>
+	<?php foreach ( $wp_styles->registered as $style ) {
+		if ( $style->src && !str_starts_with( $style->src, '/wp-includes/' ) && !str_starts_with( $style->src, '/wp-admin/' ) ) {
+			var_dump( $style );
+		}
+	} ?>
+
+	</code></pre>
+	<?php
+}
+
+function prh_array_diff_assoc_recursive( $array1, $array2 ) {
+	$diff = [];
+	// Check for keys in array1 that are not in array2.
+	foreach ( $array1 as $key => $value ) {
+		if ( ! array_key_exists( $key, $array2 ) ) {
+			$diff[ $key ] = $value;
+		} elseif ( is_array( $value ) ) {
+			// Check for keys in array1 that are arrays, and recurse.
+			$new_diff = prh_array_diff_assoc_recursive( $value, $array2[ $key ] );
+			if ( ! empty( $new_diff ) ) {
+				$diff[ $key ] = $new_diff;
+			}
+		} elseif ( $value !== $array2[ $key ] ) {
+			// Check for keys in array1 that are not arrays, and are not equal to the corresponding value in array2.
+			$diff[ $key ] = $value;
+		}
+	}
+
+	return $diff;
 }
 
 function prh_add_menu_classes( $menu ) {
