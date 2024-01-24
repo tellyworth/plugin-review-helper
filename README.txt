@@ -18,6 +18,7 @@ Not for use on a production site.
 * Move plugin menu to the admin bar
 * Highlight plugin additions to wp-admin menu/submenu nav
 * List enqueued scripts and styles
+* List currently registered plugin hooks
 
 = 0.2 =
 
