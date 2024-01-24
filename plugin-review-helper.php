@@ -6,7 +6,7 @@ namespace WordPressdotorg\Plugin_Review_Helper;
  * Description: Helper plugin for reviewing plugins. Makes a plugin moderator's job a little easier. Intended for use within Playground.
  * Author: Alex Shiels
  * Author URI: https://wordpress.org/
- * Version: 0.1
+ * Version: 0.3
  * Tested up to: 6.3
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -28,11 +28,50 @@ ini_set( 'html_errors', 1 );
 // Put the log file somewhere accessible both by code and web.
 ini_set( 'error_log', PRH_LOG_FILE );
 
-add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
+function prh_admin_menu_capture() {
+	global $prh_base_menu, $prh_base_submenu;
+
+	// Capture a copy of the menu and submenu globals before plugins add to them.
+	$prh_base_menu = $GLOBALS['menu'];
+	$prh_base_submenu = $GLOBALS['submenu'];
+}
+
+function prh_enqueued_capture() {
+	global $prh_enqueued_scripts, $prh_enqueued_styles;
+	global $wp_scripts, $wp_styles;
+
+	// Capture a copy of the enqueued scripts and styles before plugins add to them.
+	$prh_enqueued_scripts = $wp_scripts->registered;
+	$prh_enqueued_styles = $wp_styles->registered;
+}
 
 function prh_admin_menu() {
-	add_menu_page( 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
+	add_submenu_page( 'tools.php', 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
 }
+
+function prh_admin_bar_menu( $wp_admin_bar ) {
+	$wp_admin_bar->add_node( array(
+		'id'    => 'plugin-review-helper',
+		'title' => 'Plugin Review Helper',
+		'href'  => admin_url( 'admin.php?page=plugin-review-helper' ),
+		'parent' => 'top-secondary',
+	) );
+}
+
+// Capture an early copy of the menu and submenu globals.
+add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu_capture', PHP_INT_MIN );
+
+// Capture an early copy of the enqueued scripts and styles.
+add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\prh_enqueued_capture', PHP_INT_MIN );
+add_action( 'admin_enqueue_scripts', __NAMESPACE__ . '\prh_enqueued_capture', PHP_INT_MIN );
+
+// Add submenu.
+add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu' );
+
+// Add item to admin bar.
+add_action( 'admin_bar_menu', __NAMESPACE__ . '\prh_admin_bar_menu', 100 );
+
+add_action( 'add_menu_classes', __NAMESPACE__ . '\prh_add_menu_classes', 100 );
 
 add_action( 'admin_init', __NAMESPACE__ . '\prh_admin_init' );
 
@@ -50,6 +89,19 @@ function prh_admin_notice() {
 	<?php
 }
 
+// Given the full pathname of a file from a plugin, return the plugin's main file (in 'slug/plugin.php' format).
+function prh_get_plugin_file_from_path( $path ) {
+	$plugins = get_plugins();
+	foreach ( $plugins as $file => $plugin ) {
+		$plugin_dir = dirname( WP_CONTENT_DIR . '/plugins/' . $file );
+		if ( str_starts_with( $path, $plugin_dir ) ) {
+			return $file;
+		}
+	}
+
+	return false;
+}
+
 function prh_admin_page() {
 	?>
 	<div class="wrap">
@@ -65,4 +117,141 @@ function prh_admin_page() {
 	if ( isset( $_GET['phpinfo'] ) ) {
 		phpinfo();
 	}
+
+	global $wp_scripts, $wp_styles;
+	global $prh_enqueued_scripts, $prh_enqueued_styles;
+	?>
+	<div>
+		<h2>Enqueued Scripts</h2>
+		<dl>
+	<?php foreach ( $wp_scripts->registered as $script ) {
+		if ( isset( $prh_enqueued_scripts[ $script->handle ] ) ) {
+			continue;
+		}
+		if ( $script->src && !str_starts_with( $script->src, '/wp-includes/' ) && !str_starts_with( $script->src, '/wp-admin/' ) ) {
+			?>
+			<dt><?php echo esc_html( $script->handle ); ?></dt>
+			<dd><?php echo esc_html( $script->src ); ?></dd>
+			<?php
+		}
+	} ?>
+		<h2>Enqueued Styles</h2>
+		</dl>
+	<?php foreach ( $wp_styles->registered as $style ) {
+		if ( isset( $prh_enqueued_styles[ $style->handle ] ) ) {
+			continue;
+		}
+		if ( $style->src && !str_starts_with( $style->src, '/wp-includes/' ) && !str_starts_with( $style->src, '/wp-admin/' ) ) {
+			?>
+			<dt><?php echo esc_html( $style->handle ); ?></dt>
+			<dd><?php echo esc_html( $style->src ); ?></dd>
+			<?php
+		}
+	} ?>
+
+	</div>
+		<h2>Hooks</h2>
+	<dl><?php
+
+		global $wp_filter;
+
+		foreach ( $wp_filter as $hook => $filter ) {
+			foreach ( $filter as $priority => $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					$ref = null;
+					if ( is_string( $callback['function'] ) && function_exists( $callback['function'] ) ) {
+						$ref = new \ReflectionFunction( $callback['function'] );
+					} elseif ( is_array( $callback['function'] ) && is_callable( $callback['function'] ) ) {
+						$ref = new \ReflectionMethod( $callback['function'][0], $callback['function'][1] );
+					}
+					if ( $ref ) {
+						if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/' ) ) {
+							if ( \str_starts_with( $ref->getFileName(), __DIR__ ) ) {
+								// Skip self.
+								continue;
+							}
+							if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/sqlite-database-integration/' ) ) {
+								// Used by Playground.
+								continue;
+							}
+
+							$plugin_file = prh_get_plugin_file_from_path( $ref->getFileName() );
+							$source_file = substr( $ref->getFileName(), strlen( WP_CONTENT_DIR . '/plugins/' ) );
+							$callback_name = ( $ref instanceof \ReflectionMethod ? $ref->getDeclaringClass()->getName() . '::' . $ref->getName() . '()' : $ref->getName() . '()' );
+
+							?>
+							<dt><?php echo esc_html( $hook ); ?></dt>
+							<dd><?php printf( '<a href="%s">%s</a>', admin_url('plugin-editor.php?file=' . $source_file . '&plugin=' . $plugin_file . '&line=' . $ref->getStartLine() ), esc_html( $callback_name ) ); ?></dd>
+							<?php
+						}
+					}
+				}
+			}
+		}
+	?></dl>
+	<?php
+}
+
+function prh_array_diff_assoc_recursive( $array1, $array2 ) {
+	$diff = [];
+	// Check for keys in array1 that are not in array2.
+	foreach ( $array1 as $key => $value ) {
+		if ( ! array_key_exists( $key, $array2 ) ) {
+			$diff[ $key ] = $value;
+		} elseif ( is_array( $value ) ) {
+			// Check for keys in array1 that are arrays, and recurse.
+			$new_diff = prh_array_diff_assoc_recursive( $value, $array2[ $key ] );
+			if ( ! empty( $new_diff ) ) {
+				$diff[ $key ] = $new_diff;
+			}
+		} elseif ( $value !== $array2[ $key ] ) {
+			// Check for keys in array1 that are not arrays, and are not equal to the corresponding value in array2.
+			$diff[ $key ] = $value;
+		}
+	}
+
+	return $diff;
+}
+
+function prh_add_menu_classes( $menu ) {
+	global $prh_base_menu, $prh_base_submenu;
+
+	#var_dump( __FUNCTION__, count( $prh_base_menu ), count( $prh_base_submenu ) );
+	$slugs = [];
+
+	foreach ( $menu as $key => $item ) {
+		$slugs[ $item[2] ] = $key;
+		if ( ! isset( $prh_base_menu[ $key ] ) ) {
+			$menu[ $key ][0] = '<span style="border: 1px dotted orange;">' . $menu[ $key ][0] . '</span>';
+		}
+	}
+
+	// There's no corresponding filter for submenus, so we'll modify them in-place here.
+	global $prh_base_submenu, $submenu;
+
+	foreach ( $submenu as $key => $items ) {
+		foreach ( $items as $item_key => $item ) {
+			if ( ! isset( $prh_base_submenu[ $key ][ $item_key ] ) ) {
+				// Ignore plugins used by Playground.
+				if ( 'plugin-review-helper' === $item[2] || 'sqlite-integration' === $item[2] ) {
+					continue;
+				}
+				// These are added by core in a deferred action.
+				if ( 'theme-editor.php' === $item[2] || 'plugin-editor.php' === $item[2] ) {
+					continue;
+				}
+				// Highlight the submenu item.
+				#$submenu[ $key ][ $item_key ][0] .= ' <span class="menu-counter"><span class="count">!</span></span>';
+				$submenu[ $key ][ $item_key ][0] = '<span style="border: 1px dotted orange;">' . $submenu[ $key ][ $item_key ][0] . '</span>';
+				if ( isset( $slugs[ $key ] ) ) {
+					// Also highlight the parent menu item.
+					$menu[ $slugs[ $key ] ][0] = '<span style="border: 1px dotted orange;">' . $menu[ $slugs[ $key ] ][0] . '</span>';
+					// Unset the slug so we don't add the icon twice.
+					unset( $slugs[ $key ] );
+				}
+			}
+		}
+	}
+
+	return $menu;
 }
