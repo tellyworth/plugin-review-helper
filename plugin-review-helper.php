@@ -89,6 +89,19 @@ function prh_admin_notice() {
 	<?php
 }
 
+// Given the full pathname of a file from a plugin, return the plugin's main file (in 'slug/plugin.php' format).
+function prh_get_plugin_file_from_path( $path ) {
+	$plugins = get_plugins();
+	foreach ( $plugins as $file => $plugin ) {
+		$plugin_dir = dirname( WP_CONTENT_DIR . '/plugins/' . $file );
+		if ( str_starts_with( $path, $plugin_dir ) ) {
+			return $file;
+		}
+	}
+
+	return false;
+}
+
 function prh_admin_page() {
 	?>
 	<div class="wrap">
@@ -116,7 +129,6 @@ function prh_admin_page() {
 			continue;
 		}
 		if ( $script->src && !str_starts_with( $script->src, '/wp-includes/' ) && !str_starts_with( $script->src, '/wp-admin/' ) ) {
-			#var_dump( $script );
 			?>
 			<dt><?php echo esc_html( $script->handle ); ?></dt>
 			<dd><?php echo esc_html( $script->src ); ?></dd>
@@ -130,7 +142,6 @@ function prh_admin_page() {
 			continue;
 		}
 		if ( $style->src && !str_starts_with( $style->src, '/wp-includes/' ) && !str_starts_with( $style->src, '/wp-admin/' ) ) {
-			#var_dump( $style );
 			?>
 			<dt><?php echo esc_html( $style->handle ); ?></dt>
 			<dd><?php echo esc_html( $style->src ); ?></dd>
@@ -138,7 +149,46 @@ function prh_admin_page() {
 		}
 	} ?>
 
-	</code></pre>
+	</div>
+		<h2>Hooks</h2>
+	<dl><?php
+
+		global $wp_filter;
+
+		foreach ( $wp_filter as $hook => $filter ) {
+			foreach ( $filter as $priority => $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					$ref = null;
+					if ( is_string( $callback['function'] ) && function_exists( $callback['function'] ) ) {
+						$ref = new \ReflectionFunction( $callback['function'] );
+					} elseif ( is_array( $callback['function'] ) && is_callable( $callback['function'] ) ) {
+						$ref = new \ReflectionMethod( $callback['function'][0], $callback['function'][1] );
+					}
+					if ( $ref ) {
+						if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/' ) ) {
+							if ( \str_starts_with( $ref->getFileName(), __DIR__ ) ) {
+								// Skip self.
+								continue;
+							}
+							if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/sqlite-database-integration/' ) ) {
+								// Used by Playground.
+								continue;
+							}
+
+							$plugin_file = prh_get_plugin_file_from_path( $ref->getFileName() );
+							$source_file = substr( $ref->getFileName(), strlen( WP_CONTENT_DIR . '/plugins/' ) );
+							$callback_name = ( $ref instanceof \ReflectionMethod ? $ref->getDeclaringClass()->getName() . '::' . $ref->getName() . '()' : $ref->getName() . '()' );
+
+							?>
+							<dt><?php echo esc_html( $hook ); ?></dt>
+							<dd><?php printf( '<a href="%s">%s</a>', admin_url('plugin-editor.php?file=' . $source_file . '&plugin=' . $plugin_file . '&line=' . $ref->getStartLine() ), esc_html( $callback_name ) ); ?></dd>
+							<?php
+						}
+					}
+				}
+			}
+		}
+	?></dl>
 	<?php
 }
 
