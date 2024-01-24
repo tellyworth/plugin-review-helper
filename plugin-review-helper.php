@@ -6,7 +6,7 @@ namespace WordPressdotorg\Plugin_Review_Helper;
  * Description: Helper plugin for reviewing plugins. Makes a plugin moderator's job a little easier. Intended for use within Playground.
  * Author: Alex Shiels
  * Author URI: https://wordpress.org/
- * Version: 0.1
+ * Version: 0.3
  * Tested up to: 6.3
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -108,21 +108,33 @@ function prh_admin_page() {
 	global $wp_scripts, $wp_styles;
 	global $prh_enqueued_scripts, $prh_enqueued_styles;
 	?>
-	<pre><code>
+	<div>
+		<h2>Enqueued Scripts</h2>
+		<dl>
 	<?php foreach ( $wp_scripts->registered as $script ) {
 		if ( isset( $prh_enqueued_scripts[ $script->handle ] ) ) {
 			continue;
 		}
 		if ( $script->src && !str_starts_with( $script->src, '/wp-includes/' ) && !str_starts_with( $script->src, '/wp-admin/' ) ) {
-			var_dump( $script );
+			#var_dump( $script );
+			?>
+			<dt><?php echo esc_html( $script->handle ); ?></dt>
+			<dd><?php echo esc_html( $script->src ); ?></dd>
+			<?php
 		}
 	} ?>
+		<h2>Enqueued Styles</h2>
+		</dl>
 	<?php foreach ( $wp_styles->registered as $style ) {
 		if ( isset( $prh_enqueued_styles[ $style->handle ] ) ) {
 			continue;
 		}
 		if ( $style->src && !str_starts_with( $style->src, '/wp-includes/' ) && !str_starts_with( $style->src, '/wp-admin/' ) ) {
-			var_dump( $style );
+			#var_dump( $style );
+			?>
+			<dt><?php echo esc_html( $style->handle ); ?></dt>
+			<dd><?php echo esc_html( $style->src ); ?></dd>
+			<?php
 		}
 	} ?>
 
