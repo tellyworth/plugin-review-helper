@@ -160,7 +160,7 @@ function prh_add_menu_classes( $menu ) {
 	foreach ( $menu as $key => $item ) {
 		$slugs[ $item[2] ] = $key;
 		if ( ! isset( $prh_base_menu[ $key ] ) ) {
-			$menu[ $key ][4] .= ' menu-item-new';
+			$menu[ $key ][0] = '<span style="border: 1px dotted orange;">' . $menu[ $key ][0] . '</span>';
 		}
 	}
 
