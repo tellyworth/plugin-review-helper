@@ -174,6 +174,10 @@ function prh_add_menu_classes( $menu ) {
 				if ( 'plugin-review-helper' === $item[2] || 'sqlite-integration' === $item[2] ) {
 					continue;
 				}
+				// These are added by core in a deferred action.
+				if ( 'theme-editor.php' === $item[2] || 'plugin-editor.php' === $item[2] ) {
+					continue;
+				}
 				// Highlight the submenu item.
 				#$submenu[ $key ][ $item_key ][0] .= ' <span class="menu-counter"><span class="count">!</span></span>';
 				$submenu[ $key ][ $item_key ][0] = '<span style="border: 1px dotted orange;">' . $submenu[ $key ][ $item_key ][0] . '</span>';
