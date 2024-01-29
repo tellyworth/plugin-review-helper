@@ -232,8 +232,14 @@ function prh_add_menu_classes( $menu ) {
 	foreach ( $submenu as $key => $items ) {
 		foreach ( $items as $item_key => $item ) {
 			if ( ! isset( $prh_base_submenu[ $key ][ $item_key ] ) ) {
+				$ignore_plugins = [
+					'plugin-review-helper',
+					'sqlite-integration',
+					'plugin-check',
+				];
+
 				// Ignore plugins used by Playground.
-				if ( 'plugin-review-helper' === $item[2] || 'sqlite-integration' === $item[2] ) {
+				if ( in_array( $item[2], $ignore_plugins, true ) ) {
 					continue;
 				}
 				// These are added by core in a deferred action.
