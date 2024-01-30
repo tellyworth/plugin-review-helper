@@ -87,6 +87,10 @@ add_action( 'add_menu_classes', __NAMESPACE__ . '\prh_add_menu_classes', 100 );
 
 add_action( 'admin_init', __NAMESPACE__ . '\prh_admin_init' );
 
+// Make _doing_it_wrong() errors noisy.
+add_filter( 'doing_it_wrong_run', __NAMESPACE__ . '\prh_doing_it_wrong_run', 10, 3 );
+
+
 function prh_admin_init() {
 	if ( 'wasm' !== strtolower( php_sapi_name() ) ) {
 		add_action( 'admin_notices', __NAMESPACE__ . '\prh_admin_notice' );
@@ -277,4 +281,14 @@ function prh_add_menu_classes( $menu ) {
 	}
 
 	return $menu;
+}
+
+function prh_doing_it_wrong_run( $function_name, $message, $wp_version ) {
+	$_message = sprintf(
+		'Function %1$s was called <strong>incorrectly</strong>. %2$s %3$s',
+		$function_name,
+		esc_html( $message ),
+		$wp_version
+	);
+	trigger_error( $_message, E_USER_WARNING );
 }
