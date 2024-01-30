@@ -45,6 +45,18 @@ function prh_enqueued_capture() {
 	$prh_enqueued_styles = $wp_styles->registered;
 }
 
+function prh_count_lines_in_file( $filename ) {
+	$linecount = 0;
+	$handle = fopen( $filename, 'r' );
+	while ( !feof( $handle ) ) {
+		$line = fgets( $handle );
+		$linecount++;
+	}
+	fclose( $handle );
+
+	return $linecount;
+}
+
 function prh_admin_menu() {
 	add_submenu_page( 'tools.php', 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
 }
@@ -108,7 +120,12 @@ function prh_admin_page() {
 		<h1>Plugin Review Helper</h1>
 		<p>Plugin Review Helper is a plugin for reviewing plugins. It makes a plugin moderator's job a little easier. It is intended for use within Playground.</p>
 		<p>Plugin Review Helper is a work in progress. It is not yet ready for use.</p>
-		<p>Error log: <a href="<?php echo esc_url( WP_CONTENT_URL . '/plugin-review-helper.log' ); ?>"><?php echo esc_url( PRH_LOG_FILE ); ?></a></p>
+		<p>Error log: <a href="<?php echo esc_url( WP_CONTENT_URL . '/plugin-review-helper.log' ); ?>"><?php echo esc_url( PRH_LOG_FILE ); ?></a> (<?php echo number_format( prh_count_lines_in_file(PRH_LOG_FILE) ); ?> lines)</p>
+
+		<p>WP_DEBUG: <?php echo ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? 'true' : 'false'; ?><br />
+		WP_DEBUG_DISPLAY: <?php echo ( defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY ) ? 'true' : 'false'; ?><br />
+		SCRIPT_DEBUG: <?php echo ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? 'true' : 'false'; ?><br />
+		</p>
 
 		<p>phpinfo(): <a href="<?php echo esc_url( admin_url( 'admin.php?page=plugin-review-helper&phpinfo=1' ) ); ?>">View</a></p>
 	</div>
