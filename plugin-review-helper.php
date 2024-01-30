@@ -47,8 +47,11 @@ function prh_enqueued_capture() {
 
 function prh_count_lines_in_file( $filename ) {
 	$linecount = 0;
+	if ( !file_exists( $filename ) ) {
+		return 0;
+	}
 	$handle = fopen( $filename, 'r' );
-	while ( !feof( $handle ) ) {
+	while ( $handle && !feof( $handle ) ) {
 		$line = fgets( $handle );
 		$linecount++;
 	}
