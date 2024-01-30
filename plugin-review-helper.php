@@ -45,6 +45,18 @@ function prh_enqueued_capture() {
 	$prh_enqueued_styles = $wp_styles->registered;
 }
 
+function prh_count_lines_in_file( $filename ) {
+	$linecount = 0;
+	$handle = fopen( $filename, 'r' );
+	while ( !feof( $handle ) ) {
+		$line = fgets( $handle );
+		$linecount++;
+	}
+	fclose( $handle );
+
+	return $linecount;
+}
+
 function prh_admin_menu() {
 	add_submenu_page( 'tools.php', 'Plugin Review Helper', 'Plugin Review Helper', 'manage_options', 'plugin-review-helper', __NAMESPACE__ . '\prh_admin_page' );
 }
@@ -74,6 +86,10 @@ add_action( 'admin_bar_menu', __NAMESPACE__ . '\prh_admin_bar_menu', 100 );
 add_action( 'add_menu_classes', __NAMESPACE__ . '\prh_add_menu_classes', 100 );
 
 add_action( 'admin_init', __NAMESPACE__ . '\prh_admin_init' );
+
+// Make _doing_it_wrong() errors noisy.
+add_filter( 'doing_it_wrong_run', __NAMESPACE__ . '\prh_doing_it_wrong_run', 10, 3 );
+
 
 function prh_admin_init() {
 	if ( 'wasm' !== strtolower( php_sapi_name() ) ) {
@@ -108,7 +124,12 @@ function prh_admin_page() {
 		<h1>Plugin Review Helper</h1>
 		<p>Plugin Review Helper is a plugin for reviewing plugins. It makes a plugin moderator's job a little easier. It is intended for use within Playground.</p>
 		<p>Plugin Review Helper is a work in progress. It is not yet ready for use.</p>
-		<p>Error log: <a href="<?php echo esc_url( WP_CONTENT_URL . '/plugin-review-helper.log' ); ?>"><?php echo esc_url( PRH_LOG_FILE ); ?></a></p>
+		<p>Error log: <a href="<?php echo esc_url( WP_CONTENT_URL . '/plugin-review-helper.log' ); ?>"><?php echo esc_url( PRH_LOG_FILE ); ?></a> (<?php echo number_format( prh_count_lines_in_file(PRH_LOG_FILE) ); ?> lines)</p>
+
+		<p>WP_DEBUG: <?php echo ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ? 'true' : 'false'; ?><br />
+		WP_DEBUG_DISPLAY: <?php echo ( defined( 'WP_DEBUG_DISPLAY' ) && WP_DEBUG_DISPLAY ) ? 'true' : 'false'; ?><br />
+		SCRIPT_DEBUG: <?php echo ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? 'true' : 'false'; ?><br />
+		</p>
 
 		<p>phpinfo(): <a href="<?php echo esc_url( admin_url( 'admin.php?page=plugin-review-helper&phpinfo=1' ) ); ?>">View</a></p>
 	</div>
@@ -260,4 +281,14 @@ function prh_add_menu_classes( $menu ) {
 	}
 
 	return $menu;
+}
+
+function prh_doing_it_wrong_run( $function_name, $message, $wp_version ) {
+	$_message = sprintf(
+		'Function %1$s was called <strong>incorrectly</strong>. %2$s %3$s',
+		$function_name,
+		esc_html( $message ),
+		$wp_version
+	);
+	trigger_error( $_message, E_USER_WARNING );
 }
