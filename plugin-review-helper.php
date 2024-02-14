@@ -190,15 +190,17 @@ function prh_admin_page() {
 					}
 					if ( $ref ) {
 						if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/' ) ) {
-							if ( \str_starts_with( $ref->getFileName(), __DIR__ ) ) {
-								// Skip self.
-								continue;
+							$skip = [
+								basename( __DIR__ ), // self
+								'sqlite-integration',
+								'plugin-check',
+							];
+							foreach ( $skip as $skip_plugin ) {
+								if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/' . $skip_plugin . '/' ) ) {
+									// Used by Playground environment
+									continue 2;
+								}
 							}
-							if ( \str_starts_with( $ref->getFileName(), WP_CONTENT_DIR . '/plugins/sqlite-database-integration/' ) ) {
-								// Used by Playground.
-								continue;
-							}
-
 							$plugin_file = prh_get_plugin_file_from_path( $ref->getFileName() );
 							$source_file = substr( $ref->getFileName(), strlen( WP_CONTENT_DIR . '/plugins/' ) );
 							$callback_name = ( $ref instanceof \ReflectionMethod ? $ref->getDeclaringClass()->getName() . '::' . $ref->getName() . '()' : $ref->getName() . '()' );
