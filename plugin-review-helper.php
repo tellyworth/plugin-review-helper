@@ -112,7 +112,7 @@ add_filter( 'doing_it_wrong_run', __NAMESPACE__ . '\prh_doing_it_wrong_run', 10,
 
 
 function prh_admin_init() {
-	if ( 'wasm' !== strtolower( php_sapi_name() ) ) {
+	if ( !in_array( php_sapi_name(), [ 'wasm', 'cli' ] ) ) {
 		add_action( 'admin_notices', __NAMESPACE__ . '\prh_admin_notice' );
 	}
 }
