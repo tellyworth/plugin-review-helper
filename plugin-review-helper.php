@@ -36,9 +36,9 @@ function prh_exception_error_handler(int $errno, string $errstr, string $errfile
 
 	// Capture a backtrace, since the default error handler doesn't include it for warnings or notices.
 	ob_start();
-	debug_print_backtrace();
+	debug_print_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS );
 	$backtrace = ob_get_clean();
-	error_log( '[' . gmdate('Y-m-d H:i:s e') . '] ' . $errstr . ' in ' . $errfile . ' on line ' . $errline . "\n" . $backtrace, 3, PRH_LOG_FILE );
+	error_log( '[' . gmdate('Y-m-d H:i:s e') . '] ' . $errstr . ' in ' . $errfile . ' on line ' . $errline . "\n" . $backtrace . "\n", 3, PRH_LOG_FILE );
 
 	return false; // We want to continue with the default error handler.
 }
