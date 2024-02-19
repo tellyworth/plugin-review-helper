@@ -23,10 +23,27 @@ add_filter( 'woocommerce_enable_setup_wizard', '__return_false' );
 error_reporting( E_ALL );
 // Report to both screen and log.
 ini_set( 'display_errors', 1 );
-ini_set( 'log_errors', 1 );
+ini_set( 'log_errors', false );
 ini_set( 'html_errors', 1 );
 // Put the log file somewhere accessible both by code and web.
 ini_set( 'error_log', PRH_LOG_FILE );
+
+function prh_exception_error_handler(int $errno, string $errstr, string $errfile = null, int $errline) {
+	if (!(error_reporting() & $errno)) {
+		// This error code is not included in error_reporting
+		return false;
+	}
+
+	// Capture a backtrace, since the default error handler doesn't include it for warnings or notices.
+	ob_start();
+	debug_print_backtrace();
+	$backtrace = ob_get_clean();
+	error_log( '[' . gmdate('Y-m-d H:i:s e') . '] ' . $errstr . ' in ' . $errfile . ' on line ' . $errline . "\n" . $backtrace, 3, PRH_LOG_FILE );
+
+	return false; // We want to continue with the default error handler.
+}
+
+set_error_handler( __NAMESPACE__ . '\prh_exception_error_handler' );
 
 function prh_admin_menu_capture() {
 	global $prh_base_menu, $prh_base_submenu;
