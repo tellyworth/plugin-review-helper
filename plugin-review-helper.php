@@ -90,6 +90,12 @@ function prh_admin_bar_menu( $wp_admin_bar ) {
 	) );
 }
 
+function prh_http_api_debug( $response, $context, $class, $args, $url ) {
+	trigger_error( 'HTTP API request: ' . $url );
+	trigger_error( 'HTTP API args: ' . print_r( $args, true ) );
+	trigger_error( 'HTTP API response: ' . print_r( $response, true ) );
+}
+
 // Capture an early copy of the menu and submenu globals.
 add_action( 'admin_menu', __NAMESPACE__ . '\prh_admin_menu_capture', PHP_INT_MIN );
 
@@ -109,6 +115,9 @@ add_action( 'admin_init', __NAMESPACE__ . '\prh_admin_init' );
 
 // Make _doing_it_wrong() errors noisy.
 add_filter( 'doing_it_wrong_run', __NAMESPACE__ . '\prh_doing_it_wrong_run', 10, 3 );
+
+// HTTP API debugging.
+add_filter( 'http_api_debug', __NAMESPACE__ . '\prh_http_api_debug', 10, 5 );
 
 
 function prh_admin_init() {
