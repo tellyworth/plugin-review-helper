@@ -28,6 +28,10 @@ ini_set( 'html_errors', 1 );
 // Put the log file somewhere accessible both by code and web.
 ini_set( 'error_log', PRH_LOG_FILE );
 
+function prh_log_message( $message ) {
+	error_log( '[' . gmdate('Y-m-d H:i:s e') . '] ' . trim( $message ) . "\n", 3, PRH_LOG_FILE );
+}
+
 function prh_exception_error_handler(int $errno, string $errstr, string $errfile = null, int $errline) {
 	if (!(error_reporting() & $errno)) {
 		// This error code is not included in error_reporting
@@ -38,7 +42,7 @@ function prh_exception_error_handler(int $errno, string $errstr, string $errfile
 	ob_start();
 	debug_print_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS );
 	$backtrace = ob_get_clean();
-	error_log( '[' . gmdate('Y-m-d H:i:s e') . '] ' . $errstr . ' in ' . $errfile . ' on line ' . $errline . "\n" . $backtrace . "\n", 3, PRH_LOG_FILE );
+	prh_log_message( $errstr . ' in ' . $errfile . ' on line ' . $errline . "\n" . $backtrace, 3, PRH_LOG_FILE );
 
 	return false; // We want to continue with the default error handler.
 }
@@ -91,9 +95,19 @@ function prh_admin_bar_menu( $wp_admin_bar ) {
 }
 
 function prh_http_api_debug( $response, $context, $class, $args, $url ) {
-	trigger_error( 'HTTP API request: ' . $url );
-	trigger_error( 'HTTP API args: ' . print_r( $args, true ) );
-	trigger_error( 'HTTP API response: ' . print_r( $response, true ) );
+	prh_log_message( 'HTTP API request: ' . $url );
+	if ( is_wp_error( $response ) ) {
+		prh_log_message( 'HTTP API error: ' . $response->get_error_message() );
+		prh_log_message( 'HTTP API error code: ' . $response->get_error_code() );
+	} else {
+		#prh_log_message( 'HTTP API args: ' . print_r( $args, true ) );
+		#prh_log_message( 'HTTP API headers: ' . print_r( $response['headers'], true ) );
+		if ( isset( $response['response']['code'] ) ) {
+			prh_log_message( 'HTTP API response: ' . $response['response']['code'] . ' ' . $response['response']['message'] );
+		} else {
+			prh_log_message( 'HTTP API response: ' . print_r( $response['response'], true ) );
+		}
+	}
 }
 
 // Capture an early copy of the menu and submenu globals.
