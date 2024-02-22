@@ -99,6 +99,11 @@ function prh_http_api_debug( $response, $context, $class, $args, $url ) {
 	if ( is_wp_error( $response ) ) {
 		prh_log_message( 'HTTP API error: ' . $response->get_error_message() );
 		prh_log_message( 'HTTP API error code: ' . $response->get_error_code() );
+		// TEMP? for debugging a possible Playground bug.
+		ob_start();
+		debug_print_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS );
+		$backtrace = ob_get_clean();
+		prh_log_message( 'HTTP API error backtrace: ' . $backtrace );
 	} else {
 		#prh_log_message( 'HTTP API args: ' . print_r( $args, true ) );
 		#prh_log_message( 'HTTP API headers: ' . print_r( $response['headers'], true ) );
