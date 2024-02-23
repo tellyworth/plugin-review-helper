@@ -19,6 +19,12 @@ namespace WordPressdotorg\Plugin_Review_Helper;
 // Disable the WooCommerce setup wizard.
 add_filter( 'woocommerce_enable_setup_wizard', '__return_false' );
 
+// Workaround for Playground networking bug; see https://github.com/WordPress/wordpress-playground/issues/1047#issuecomment-1960613795
+// Remove this once the bug is fixed.
+add_action( 'requests-requests.before_request', function( $url, $headers, $data, $type, &$options ) {
+	$options['transport'] = 'Wp_Http_Fetch';
+}, 10, 5 );
+
 // Crank up error reporting.
 error_reporting( E_ALL );
 // Report to both screen and log.
